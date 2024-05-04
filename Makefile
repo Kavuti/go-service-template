@@ -1,6 +1,8 @@
 BUF_VERSION := "1.30.1"
 SQLC_VERSION := "1.26.0"
 
+DOCKER_REGISTRY_PREFIX="christiancavuti"
+
 include .env.dev
 export $(shell sed 's/=.*//' .env.dev)
 
@@ -40,6 +42,15 @@ init:
 	@$(MAKE) deps
 	@mkdir -p ./service
 
+docker/build:
+	@docker build -t "${DOCKER_REGISTRY_PREFIX}/$$(basename $$(pwd))" .
+
+docker/push:
+	@docker push "${DOCKER_REGISTRY_PREFIX}/$$(basename $$(pwd))"
+
+
+build:
+	@go build -o ./cmd/$$(basename $$(pwd)) .
 
 run/dev:
 	@go run .
