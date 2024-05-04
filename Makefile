@@ -1,6 +1,9 @@
 BUF_VERSION := "1.30.1"
 SQLC_VERSION := "1.26.0"
 
+include .env.dev
+export $(shell sed 's/=.*//' .env.dev)
+
 .PHONY: deps
 
 sqlc:
@@ -36,3 +39,7 @@ init:
 	@go mod init "github.com/Kavuti/$$(basename $$(pwd))"
 	@$(MAKE) deps
 	@mkdir -p ./service
+
+
+run/dev:
+	@go run .
