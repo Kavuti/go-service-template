@@ -26,5 +26,4 @@ bin
 # Generated code
 gen
 
-# Buf lock removal
 buf.lock
