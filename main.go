@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"embed"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -23,6 +24,14 @@ var logger *zap.Logger
 
 //go:embed db/migrations/*.sql
 var embedMigrations embed.FS
+
+func RegisterGrpcServers(s *grpc.Server, dbpool *pgxpool.Pool) {
+	// TODO: Implement
+}
+
+func RegisterHttpHandlers(ctx context.Context, mux *runtime.ServeMux, opts []grpc.DialOption) {
+	// TODO: Implement
+}
 
 func main() {
 	logger = zap.Must(zap.NewProduction())
@@ -61,12 +70,14 @@ func main() {
 
 func RunGrpcServer(dbpool *pgxpool.Pool, wg *sync.WaitGroup) {
 	defer wg.Done()
+	serverPort := getEnvOrDefault("GRPC_SERVER_PORT", "8090")
+
 	validator, err := protovalidate.New()
 	if err != nil {
 		logger.Fatal("Error creating validator", zap.Error(err))
 	}
 
-	listener, err := net.Listen("tcp", ":8090")
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", serverPort))
 	if err != nil {
 		logger.Fatal("Error starting server", zap.Error(err))
 	}
@@ -74,15 +85,18 @@ func RunGrpcServer(dbpool *pgxpool.Pool, wg *sync.WaitGroup) {
 		grpc.UnaryInterceptor(
 			protovalidate_middleware.UnaryServerInterceptor(validator),
 		))
-	// proto.RegisterUserServiceServer(s, service.NewUserServiceServer(dbpool))
-	proto.RegisterExpenseServiceServer(s, service.NewExpensesServiceServer(dbpool))
-	logger.Info("Server started on port 8090")
+
+	RegisterGrpcServers(s, dbpool)
+
+	logger.Infof("Server started on port %s", serverPort)
 	if err := s.Serve(listener); err != nil {
 		logger.Fatal("Error serving server", zap.Error(err))
 	}
 }
 
 func RunGatewayServer(wg *sync.WaitGroup) {
+	servicePort := getEnvOrDefault("HTTP_SERVER_PORT", "8080")
+
 	defer wg.Done()
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
@@ -90,13 +104,18 @@ func RunGatewayServer(wg *sync.WaitGroup) {
 
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
-	err := proto.RegisterExpenseServiceHandlerFromEndpoint(ctx, mux, ":8090", opts)
-	if err != nil {
-		logger.Fatal("Error starting gateway server", zap.Error(err))
-	}
 
-	logger.Info("Gateway server started on port 8080")
-	if err = http.ListenAndServe(":8080", mux); err != nil {
+	RegisterHttpHandlers(ctx, mux, opts)
+
+	logger.Infof("Gateway server started on port % s", servicePort)
+	if err := http.ListenAndServe(fmt.Sprintf(":%s", servicePort), mux); err != nil {
 		logger.Fatal("Error serving gateway server", zap.Error(err))
 	}
+}
+
+func getEnvOrDefault(key string, defaultValue string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return defaultValue
 }
