@@ -8,9 +8,13 @@ plugins:
     out: ./gen
     opt:
       - paths=source_relative
+      - require_unimplemented_servers=false
   - plugin: buf.build/grpc-ecosystem/gateway:v2.19.1
     out: ./gen
     opt:
       - paths=source_relative
+      - allow_repeated_fields_in_body=true
   - plugin: buf.build/grpc-ecosystem/openapiv2:v2.19.1
     out: ./gen
+    opt:
+      - allow_repeated_fields_in_body=true
