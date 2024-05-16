@@ -34,10 +34,7 @@ func RegisterHttpHandlers(ctx context.Context, mux *runtime.ServeMux, opts []grp
 }
 
 func main() {
-	logger = zap.Must(zap.NewProduction())
-	if os.Getenv("APP_ENV") != "production" {
-		logger = zap.Must(zap.NewDevelopment())
-	}
+	logger = NewSugaredLogger()
 	defer logger.Sync()
 
 	logger.Info("Starting database connection pool")
@@ -48,7 +45,7 @@ func main() {
 	defer dbpool.Close()
 
 	logger.Info("Connection pool started. Preparing to run migrations")
-	goose.SetLogger(GooseZapLogger(logger))
+	goose.SetLogger(GooseZapSugaredLogger(logger))
 	goose.SetBaseFS(embedMigrations)
 	if err := goose.SetDialect("postgres"); err != nil {
 		logger.Fatal("Error setting dialect", zap.Error(err))
