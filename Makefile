@@ -31,7 +31,7 @@ deps: sqlc sqlc/directories buf
 	@go get github.com/pressly/goose/v3
 	@go get go.uber.org/zap
 	@go get github.com/jackc/pgx/v5
-	@go get go get github.com/grpc-ecosystem/grpc-gateway/v2@2.19.1
+	@go get github.com/grpc-ecosystem/grpc-gateway/v2@2.19.1
 
 generate:
 	@./bin/sqlc generate
